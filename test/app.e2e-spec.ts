@@ -1,6 +1,6 @@
 import * as request from 'supertest';
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import supertest from 'supertest';
 import { BookModule } from '../src/book.module';
 
@@ -14,6 +14,7 @@ describe('Books API', () => {
     }).compile();
 
     app = moduleRef.createNestApplication();
+    app.useGlobalPipes(new ValidationPipe());
     await app.init();
 
     httpRequester = request(app.getHttpServer());
@@ -148,5 +149,21 @@ describe('Books API', () => {
     expect(response.body).toEqual(
       expect.arrayContaining([candide, laCantatriceChauve]),
     );
+  });
+
+  it(`/POST books with bad payload`, async () => {
+    const error = await httpRequester
+      .post('/books')
+      .send({
+        author: '',
+        title: 'Candide',
+        date: 12,
+      })
+      .expect(400);
+
+    expect(error.body.message).toEqual([
+      'author should not be empty',
+      'date must be a string',
+    ]);
   });
 });

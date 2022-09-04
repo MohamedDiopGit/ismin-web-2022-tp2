@@ -2,7 +2,7 @@ import {
   Body,
   Controller,
   Delete,
-  Get,
+  Get, HttpCode,
   Param,
   Post,
   Query,
@@ -36,5 +36,11 @@ export class BookController {
   @Delete(':title')
   deleteBook(@Param('title') title: string): void {
     return this.bookService.removeBook(title);
+  }
+
+  @Post('search')
+  @HttpCode(200)
+  public searchByAuthorAndTitle(@Body() query: { term: string }): Book[] {
+    return this.bookService.searchByAuthorAndTitle(query.term);
   }
 }

@@ -3,8 +3,36 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import supertest from 'supertest';
 import { BookModule } from '../src/book.module';
+import { Book } from '../src/Book';
+import arrayContaining = jasmine.arrayContaining;
 
 describe('Books API', () => {
+  const theLordOfTheRings: Book = {
+    title: 'The Lord of the Rings',
+    author: 'J. R. R. Tolkien',
+    date: '1954-02-15',
+  };
+  const theHobbit: Book = {
+    title: 'The Hobbit',
+    author: 'J. R. R. Tolkien',
+    date: '1937-09-21',
+  };
+  const hamlet: Book = {
+    title: 'Hamlet',
+    author: 'William Shakespeare',
+    date: '1600',
+  };
+  const candide: Book = {
+    title: 'Candide',
+    author: 'Voltaire',
+    date: '1759',
+  };
+  const aLaRechercheDuTempsPerdu = {
+    title: 'À la recherche du temps perdu',
+    author: 'Marcel Proust',
+    date: '1927',
+  };
+
   let app: INestApplication;
   let httpRequester: supertest.SuperTest<supertest.Test>;
 
@@ -23,7 +51,7 @@ describe('Books API', () => {
   it(`/GET books`, async () => {
     const response = await httpRequester.get('/books').expect(200);
 
-    expect(response.body).toEqual(expect.any(Array));
+    expect(response.body).toEqual({ data: [], page: 0, total: 0 });
   });
 
   it(`/POST books`, async () => {
@@ -113,9 +141,8 @@ describe('Books API', () => {
     // Finally check the book was successfully deleted
     const response = await httpRequester.get('/books');
 
-    expect(response.body).toEqual([]);
+    expect(response.body).toEqual({ data: [], page: 0, total: 0 });
   });
-
 
   it(`/POST books/search`, async () => {
     // First prepare the data by adding some books
@@ -146,9 +173,11 @@ describe('Books API', () => {
       })
       .expect(200);
 
-    expect(response.body).toEqual(
-      expect.arrayContaining([candide, laCantatriceChauve]),
-    );
+    expect(response.body).toEqual({
+      data: expect.arrayContaining([candide, laCantatriceChauve]),
+      page: 0,
+      total: 2,
+    });
   });
 
   it(`/POST books with bad payload`, async () => {
@@ -165,5 +194,24 @@ describe('Books API', () => {
       'author should not be empty',
       'date must be a string',
     ]);
+  });
+
+  it(`/GET books with pagination`, async () => {
+    await httpRequester.post('/books').send(candide);
+    await httpRequester.post('/books').send(theLordOfTheRings);
+    await httpRequester.post('/books').send(aLaRechercheDuTempsPerdu);
+    await httpRequester.post('/books').send(hamlet);
+    await httpRequester.post('/books').send(theHobbit);
+
+    const response = await httpRequester
+      .get('/books')
+      .query({ page: 0, size: 2 })
+      .expect(200);
+
+    expect(response.body).toEqual({
+      data: expect.arrayContaining([aLaRechercheDuTempsPerdu, candide]),
+      page: 0,
+      total: 5,
+    });
   });
 });

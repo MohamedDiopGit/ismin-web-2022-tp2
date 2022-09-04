@@ -2,7 +2,8 @@ import {
   Body,
   Controller,
   Delete,
-  Get, HttpCode,
+  Get,
+  HttpCode,
   Param,
   Post,
   Query,
@@ -10,17 +11,29 @@ import {
 import { BookService } from './book.service';
 import { Book } from './Book';
 import { BookDto } from './Book.dto';
+import { PaginatedType, PaginationService } from './pagination.service';
 
 @Controller('books')
 export class BookController {
-  constructor(private readonly bookService: BookService) {}
+  constructor(
+    private readonly bookService: BookService,
+    private readonly paginationService: PaginationService,
+  ) {}
 
   @Get()
-  getBooks(@Query('author') author: string): Book[] {
+  getBooks(
+    @Query('author') author: string,
+    @Query('page') page: string,
+    @Query('size') size: string,
+  ): Book[] | PaginatedType<Book> {
     if (author) {
       return this.bookService.getBooksOf(author);
     }
-    return this.bookService.getAllBooks();
+    return this.paginationService.paginatedData(
+      this.bookService.getAllBooks(),
+      page,
+      size,
+    );
   }
 
   @Post()
@@ -41,7 +54,15 @@ export class BookController {
 
   @Post('search')
   @HttpCode(200)
-  public searchByAuthorAndTitle(@Body() query: { term: string }): Book[] {
-    return this.bookService.searchByAuthorAndTitle(query.term);
+  public searchByAuthorAndTitle(
+    @Body() query: { term: string },
+    @Query('page') page: string,
+    @Query('size') size: string,
+  ): PaginatedType<Book> {
+    return this.paginationService.paginatedData(
+      this.bookService.searchByAuthorAndTitle(query.term),
+      page,
+      size,
+    );
   }
 }
